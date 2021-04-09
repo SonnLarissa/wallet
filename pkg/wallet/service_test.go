@@ -35,3 +35,84 @@ func TestService_FindAccountByID_notFound(t *testing.T) {
 		t.Errorf("Invalid result, expected : %v, actual %v", err, error)
 	}
 }
+
+func TestService_Reject_success(t *testing.T) {
+	s := &Service{}
+	phone := types.Phone("+992000000001")
+	account, err := s.RegisterAccount(phone)
+	if err != nil {
+		t.Errorf("Reject(): can't register account, error = %v", err)
+		return
+	}
+	s.Deposit(account.ID, 10000_00)
+	if err != nil {
+		t.Errorf("Reject(): can't deposit  account, error = %v", err)
+		return
+	}
+
+	payment, err := s.Pay(account.ID, 1000_00, "auto")
+	if err != nil {
+		t.Errorf("Reject(): can't create payment, error = %v", err)
+		return
+	}
+
+	err = s.Reject(payment.ID)
+	if err != nil {
+		t.Errorf("Reject(): can't reject payment, error = %v", err)
+		return
+	}
+}
+func TestService_Reject_failed(t *testing.T) {
+	s := &Service{}
+	phone := types.Phone("+992000000001")
+	account, err := s.RegisterAccount(phone)
+	if err != nil {
+		t.Errorf("Reject(): can't register account, error = %v", err)
+		return
+	}
+	s.Deposit(account.ID, 10000_00)
+
+	_, err = s.Pay(account.ID, 1000_00, "auto")
+	if err != nil {
+		t.Errorf("Reject(): can't create payment, error = %v", err)
+		return
+	}
+
+	var fakeId string = "2"
+	err = s.Reject(fakeId)
+	if err == nil {
+		t.Errorf("Reject(): can't reject payment, error = %v", err)
+		return
+	}
+}
+
+func TestService_FindPaymentByID_success(t *testing.T) {
+	s := &Service{}
+	phone := types.Phone("+992000000001")
+	account, err := s.RegisterAccount(phone)
+	if err != nil {
+		t.Errorf("FindPaymentByID(): can't register account, error = %v", err)
+		return
+	}
+	s.Deposit(account.ID, 10000_00)
+	if err != nil {
+		t.Errorf("FindPaymentByID(): can't deposit  account, error = %v", err)
+		return
+	}
+
+	payment, err := s.Pay(account.ID, 1000_00, "auto")
+	if err != nil {
+		t.Errorf("FindPaymentByID(): can't create payment, error = %v", err)
+		return
+	}
+
+	got, err := s.FindPaymentByID(payment.ID)
+	if err != nil {
+		t.Errorf("FindPaymentByID(): can't reject payment, error = %v", err)
+		return
+	}
+	if !reflect.DeepEqual(payment, got) {
+		t.Errorf("FindPaymentByID(): wrong payment returned, error = %v", err)
+		return
+	}
+}
