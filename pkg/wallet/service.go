@@ -98,8 +98,6 @@ func (s *Service) FindAccountByID(accountID int64) (*types.Account, error) {
 	return account, nil
 }
 
-
-
 func (s *Service) Reject(paymentID string) error {
 	var target *types.Payment
 	for _, payment := range s.payments {
@@ -126,7 +124,6 @@ func (s *Service) Reject(paymentID string) error {
 	return nil
 }
 
-
 //  FindPaymentByID возвраûает указателþ на найденнýй платёж и nil в каùестве
 //оúибки
 func (s *Service) FindPaymentByID(paymentID string) (*types.Payment, error) {
@@ -136,4 +133,16 @@ func (s *Service) FindPaymentByID(paymentID string) (*types.Payment, error) {
 		}
 	}
 	return nil, ErrPaymentNotFound
+}
+
+func (s *Service) Repeat(paymentID string) (*types.Payment, error) {
+	res, er := s.FindPaymentByID(paymentID)
+	if er != nil {
+		return nil, er
+	}
+	res, er = s.Pay(res.AccountID, res.Amount, res.Category)
+	if er != nil {
+		return nil, er
+	}
+	return res, nil
 }
