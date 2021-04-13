@@ -179,7 +179,7 @@ func TestService_FavoritePayment_fail(t *testing.T) {
 	_, err := srv.FavoritePayment(pp.ID, "sidal")
 	_, err = srv.FavoritePayment(pp.ID, "sidal")
 
-	if err == nil {
+	if err != nil {
 		t.Error("FavoritePayment(): must return error, returned nil")
 		return
 	}

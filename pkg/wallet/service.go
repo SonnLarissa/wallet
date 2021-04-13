@@ -127,8 +127,7 @@ func (s *Service) Reject(paymentID string) error {
 	return nil
 }
 
-//  FindPaymentByID возвраûает указателþ на найденнýй платёж и nil в каùестве
-//оúибки
+//  FindPaymentByID возвращает указатель на найденый платеж
 func (s *Service) FindPaymentByID(paymentID string) (*types.Payment, error) {
 	for _, paym := range s.payments {
 		if paym.ID == paymentID {
