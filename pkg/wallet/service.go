@@ -187,15 +187,3 @@ func (s *Service) PayFromFavorite(favoriteID string) (*types.Payment, error) {
 	}
 	return s.Pay(fav.AccountID, fav.Amount, fav.Category)
 }
-
-func (s *Service) Repeat(paymentID string) (*types.Payment, error) {
-	res, er := s.FindPaymentByID(paymentID)
-	if er != nil {
-		return nil, er
-	}
-	res, er = s.Pay(res.AccountID, res.Amount, res.Category)
-	if er != nil {
-		return nil, er
-	}
-	return res, nil
-}
