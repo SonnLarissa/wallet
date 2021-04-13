@@ -249,31 +249,3 @@ func TestService_FindFavoriteByID_fail(t *testing.T) {
 		t.Error("FindFavoriteByID(): must return error, returned nil")
 	}
 }
-
-func TestService_Repeat_success(t *testing.T) {
-	srv := &Service{
-		accounts: make([]*types.Account, 0),
-		payments: make([]*types.Payment, 0),
-	}
-	ac, _ := srv.RegisterAccount("+992927808989")
-	_ = srv.Deposit(ac.ID, 500)
-	pp, _ := srv.Pay(ac.ID, 5, "auto")
-	p, _ := srv.Repeat(pp.ID)
-	p.ID = pp.ID
-	if !reflect.DeepEqual(p, pp) {
-		t.Errorf("Repeat(): expected %v returned =%v", pp, p)
-	}
-}
-
-func TestService_Repeat_failed(t *testing.T) {
-	srv := &Service{
-		accounts: make([]*types.Account, 0),
-		payments: make([]*types.Payment, 0),
-	}
-	_, _ = srv.RegisterAccount("+99298786545")
-	_, err := srv.Repeat(uuid.New().String())
-	if err == nil {
-		t.Errorf("Repeat(): must retrun error, returned nil")
-		return
-	}
-}
