@@ -143,7 +143,7 @@ func (s *Service) FindFavoriteByID(favoriteID string) (*types.Favorite, error) {
 			return favor, nil
 		}
 	}
-	return nil, ErrPaymentNotFound
+	return nil, ErrFavoriteNotFound
 }
 
 func (s *Service) Repeat(paymentID string) (*types.Payment, error) {
