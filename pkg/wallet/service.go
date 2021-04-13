@@ -10,7 +10,7 @@ type Service struct {
 	nextAccountID int64
 	accounts      []*types.Account
 	payments      []*types.Payment
-	favorites      []*types.Favorite
+	favorites     []*types.Favorite
 }
 
 var (
@@ -172,6 +172,7 @@ func (s *Service) FavoritePayment(paymentID string, name string) (*types.Favorit
 	favorite := &types.Favorite{
 		ID:        uuid.New().String(),
 		AccountID: payment.AccountID,
+		Name:      name,
 		Amount:    payment.Amount,
 		Category:  payment.Category,
 	}
