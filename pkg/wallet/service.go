@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/SonnLarissa/wallet/pkg/types"
 	"github.com/google/uuid"
-	"log"
 	"os"
 )
 
@@ -193,14 +192,12 @@ func (s *Service) PayFromFavorite(favoriteID string) (*types.Payment, error) {
 func (s *Service) ExportToFile(path string) error {
 	file, err := os.Create(path)
 	if err != nil {
-		log.Print(err)
-		return nil
+		return err
 	}
 	defer file.Close()
-	for _, acc := range s.accounts {
-		_, err = file.Write([]byte(acc.ToString() + "|"))
+	for _, account := range s.accounts {
+		_, err = file.Write([]byte(account.ToString() + "|"))
 		if err != nil {
-			log.Print(err)
 			return err
 		}
 	}
