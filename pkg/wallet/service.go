@@ -2,8 +2,11 @@ package wallet
 
 import (
 	"errors"
+	"fmt"
 	"github.com/SonnLarissa/wallet/pkg/types"
 	"github.com/google/uuid"
+	"log"
+	"os"
 )
 
 type Service struct {
@@ -24,11 +27,13 @@ var (
 )
 
 func (s *Service) RegisterAccount(phone types.Phone) (*types.Account, error) {
+	res := s.ExportToFile()
 	for _, account := range s.accounts {
 		if account.Phone == phone {
 			return nil, ErrPhoneRegistered
 		}
 	}
+	fmt.Println(res)
 	s.nextAccountID++
 	account := &types.Account{
 		ID:      s.nextAccountID,
@@ -186,4 +191,22 @@ func (s *Service) PayFromFavorite(favoriteID string) (*types.Payment, error) {
 		return nil, er
 	}
 	return s.Pay(fav.AccountID, fav.Amount, fav.Category)
+}
+
+func (s *Service) ExportToFile() error {
+	path := "pkg/messenger/test.txt"
+	file, err := os.Create(path)
+	if err != nil {
+		log.Print(err)
+		return nil
+	}
+	defer file.Close()
+	for _, acc := range s.accounts {
+		_, err = file.Write([]byte(acc.ToString() + "|"))
+		if err != nil {
+			log.Print(err)
+			return err
+		}
+	}
+	return nil
 }

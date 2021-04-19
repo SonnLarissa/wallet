@@ -37,8 +37,7 @@ func main() {
 
 	}
 	fmt.Println(account.Balance) //10
-	//svc.RegisterAccount("+992927895456")
-	//svc.Deposit(1,10)
-	//svc.RegisterAccount("+992231236554")
-	//wallet.RegisterAccount(svc, "+992927895456")
+	svc.RegisterAccount("+992927895456")
+	svc.Deposit(1,10)
+	svc.RegisterAccount("+992231236554")
 }
