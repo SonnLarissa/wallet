@@ -249,3 +249,22 @@ func TestService_FindFavoriteByID_fail(t *testing.T) {
 		t.Error("FindFavoriteByID(): must return error, returned nil")
 	}
 }
+func TestService_ExportToFile(t *testing.T) {
+	srv := &Service{
+		accounts:  make([]*types.Account, 0),
+		payments:  make([]*types.Payment, 0),
+		favorites: make([]*types.Favorite, 0),
+	}
+	_,_ = srv.RegisterAccount("+992928885522")
+	_,_ = srv.RegisterAccount("+992928000000")
+	_,_ = srv.RegisterAccount("+992928811111")
+	err := srv.ExportToFile("salom.txt")
+	println(err)
+}
+
+
+func TestService_ImportFromFile(t *testing.T) {
+	srv := &Service{accounts: make([]*types.Account, 0)}
+	err := srv.ImportFromFile("salom.txt")
+	println(err)
+}
