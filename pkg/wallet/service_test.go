@@ -292,3 +292,37 @@ func TestService_Export(t *testing.T) {
 		t.Error("test")
 	}
 }
+
+func BenchmarkService_SumPayments(b *testing.B) {
+	var s Service
+
+	ac, err := s.RegisterAccount("+99292929292")
+	if err != nil {
+		b.Errorf("registerAccount return error, account => %v", ac)
+	}
+
+	err = s.Deposit(ac.ID, 100_00)
+	if err != nil {
+		b.Errorf("deposit return error, %v", err)
+	}
+	_, err = s.Pay(ac.ID, 1, "auto")
+	_, err = s.Pay(ac.ID, 2, "auto")
+	_, err = s.Pay(ac.ID, 3, "auto")
+	_, err = s.Pay(ac.ID, 4, "auto")
+	_, err = s.Pay(ac.ID, 5, "auto")
+	_, err = s.Pay(ac.ID, 6, "auto")
+	_, err = s.Pay(ac.ID, 7, "auto")
+	_, err = s.Pay(ac.ID, 8, "auto")
+	_, err = s.Pay(ac.ID, 9, "auto")
+	_, err = s.Pay(ac.ID, 10, "auto")
+	_, err = s.Pay(ac.ID, 11, "auto")
+	if err != nil {
+		b.Errorf("pay return error, %v", err)
+	}
+	want := types.Money(66)
+	got := s.SumPayments(2)
+
+	if want != got {
+		b.Errorf("error, want =>%v, got => %v", want, got)
+	}
+}

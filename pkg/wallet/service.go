@@ -429,19 +429,22 @@ func (s *Service) SumPayments(goroutines int) types.Money {
 	wg := sync.WaitGroup{}
 	mu := sync.Mutex{}
 	len1 := len(s.payments) / goroutines
+	len2 := len(s.payments) % goroutines
 	sum := types.Money(0)
-
 	if goroutines > 1 {
 		currentPosition := int(0)
-		for i := 0; i < goroutines; i = i + len1 {
+		for i := 0; i < goroutines; i++ {
 			wg.Add(1)
-			lastPosition := int(currentPosition + len1)
+			lastPosition := currentPosition
 
 			go func(lastPosition int) {
 				defer wg.Done()
 				res := types.Money(0)
 				curPaymArray := s.payments[lastPosition : lastPosition+len1]
 				for _, currentPayment := range curPaymArray {
+					if currentPayment == nil {
+						continue
+					}
 					res += currentPayment.Amount
 				}
 				mu.Lock()
@@ -451,11 +454,16 @@ func (s *Service) SumPayments(goroutines int) types.Money {
 
 			currentPosition += len1
 
-
 		}
 	} else {
+		fmt.Println("from else;")
 		for _, currentPayment := range s.payments {
 			sum += currentPayment.Amount
+		}
+	}
+	if len2 != 0 {
+		for _, curPayment := range s.payments[(len(s.payments) - len2):len(s.payments)] {
+			sum += curPayment.Amount
 		}
 	}
 
