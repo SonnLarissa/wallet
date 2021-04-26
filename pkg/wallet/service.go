@@ -425,40 +425,41 @@ func (s *Service) HistoryToFiles(payments []types.Payment, dir string, records i
 }
 
 func (s *Service) SumPayments(goroutines int) types.Money {
-	mu := sync.Mutex{}
-	sum := types.Money(0)
-	m1 := len(s.payments) % goroutines
-	m := len(s.payments) / goroutines
 
 	wg := sync.WaitGroup{}
-	ss := 0
-	for i := 0; i < goroutines; i++ {
-		wg.Add(1)
-		sss := ss
-		go func(sss int) {
-			defer wg.Done()
-			val := types.Money(0)
+	mu := sync.Mutex{}
+	len1 := len(s.payments) / goroutines
+	sum := types.Money(0)
 
-			payments := s.payments[sss : sss+m]
-			for _, p := range payments {
-				if p == nil {
-					continue
+	if goroutines > 1 {
+		currentPosition := int(0)
+		for i := 0; i < goroutines; i = i + len1 {
+			wg.Add(1)
+			lastPosition := int(currentPosition + len1)
+
+			go func(lastPosition int) {
+				defer wg.Done()
+				res := types.Money(0)
+				curPaymArray := s.payments[lastPosition : lastPosition+len1]
+				for _, currentPayment := range curPaymArray {
+					res += currentPayment.Amount
 				}
-				val += p.Amount
-			}
-			mu.Lock()
-			defer mu.Unlock()
-			sum += val
-		}(sss)
-		ss += m
-	}
-	go func() {
-		if m1 > 0 {
-			for _, p := range s.payments[ss : ss+m1] {
-				sum += p.Amount
-			}
+				mu.Lock()
+				mu.Unlock()
+				sum += res
+			}(lastPosition)
+
+			currentPosition += len1
+
+
 		}
-	}()
+	} else {
+		for _, currentPayment := range s.payments {
+			sum += currentPayment.Amount
+		}
+	}
+
 	wg.Wait()
 	return sum
+
 }
