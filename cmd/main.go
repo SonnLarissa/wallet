@@ -21,7 +21,6 @@ func main() {
 	}
 	fmt.Println(account)
 
-
 	err = svc.Deposit(account.ID, 10)
 	if err != nil {
 		switch err {
@@ -38,6 +37,7 @@ func main() {
 	}
 	fmt.Println(account.Balance) //10
 	svc.RegisterAccount("+992927895456")
-	svc.Deposit(1,10)
+	svc.Deposit(1, 10)
 	svc.RegisterAccount("+992231236554")
+
 }

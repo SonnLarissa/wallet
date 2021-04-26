@@ -1,121 +1,141 @@
 package wallet
 
 import (
-	"errors"
+	"fmt"
 	"github.com/SonnLarissa/wallet/pkg/types"
 	"github.com/google/uuid"
 	"reflect"
 	"testing"
 )
 
-func TestService_FindAccountByID_success(t *testing.T) {
-	svc := &Service{accounts: []*types.Account{
-		{ID: 1, Phone: "+99295864521", Balance: 10},
-		{ID: 2, Phone: "+99295121456", Balance: 10},
-		{ID: 3, Phone: "+99295864512", Balance: 10},
-	}}
-	account, _ := svc.FindAccountByID(2)
-
-	accountExp := svc.accounts[1]
-
-	if !reflect.DeepEqual(accountExp, account) {
-		t.Errorf("Invalid result, expected : %v, actual %v", accountExp, account)
-	}
-}
-func TestService_FindAccountByID_notFound(t *testing.T) {
-	svc := &Service{accounts: []*types.Account{
-		{ID: 1, Phone: "+99295864521", Balance: 10},
-		{ID: 2, Phone: "+99295121456", Balance: 10},
-		{ID: 3, Phone: "+99295864512", Balance: 10},
-	}}
-	_, error := svc.FindAccountByID(4)
-
-	err := errors.New("account not found")
-
-	if !reflect.DeepEqual(error, err) {
-		t.Errorf("Invalid result, expected : %v, actual %v", err, error)
-	}
+type testService struct {
+	*Service
 }
 
-func TestService_Reject_success(t *testing.T) {
-	s := &Service{}
-	phone := types.Phone("+992000000001")
+func newTestService() *testService {
+	return &testService{Service: &Service{}}
+}
+
+func (s *testService) addAccountWithBalance(phone types.Phone, balance types.Money) (*types.Account, error) {
 	account, err := s.RegisterAccount(phone)
 	if err != nil {
-		t.Errorf("Reject(): can't register account, error = %v", err)
-		return
+		return nil, fmt.Errorf("can't register account, error = %v", err)
 	}
-	s.Deposit(account.ID, 10000_00)
+	err = s.Deposit(account.ID, balance)
 	if err != nil {
-		t.Errorf("Reject(): can't deposit  account, error = %v", err)
-		return
+		return nil, fmt.Errorf("can't deposit account, error = %v", err)
 	}
+	return account, nil
+}
 
-	payment, err := s.Pay(account.ID, 1000_00, "auto")
-	if err != nil {
-		t.Errorf("Reject(): can't create payment, error = %v", err)
-		return
-	}
-
-	err = s.Reject(payment.ID)
-	if err != nil {
-		t.Errorf("Reject(): can't reject payment, error = %v", err)
-		return
+type testAccount struct {
+	phone    types.Phone
+	balance  types.Money
+	payments []struct {
+		amount   types.Money
+		category types.PaymentCategory
 	}
 }
-func TestService_Reject_failed(t *testing.T) {
-	s := &Service{}
-	phone := types.Phone("+992000000001")
-	account, err := s.RegisterAccount(phone)
-	if err != nil {
-		t.Errorf("Reject(): can't register account, error = %v", err)
-		return
-	}
-	s.Deposit(account.ID, 10000_00)
 
-	_, err = s.Pay(account.ID, 1000_00, "auto")
+func (s *testService) addAccount(data testAccount) (*types.Account, []*types.Payment, error) {
+	account, err := s.RegisterAccount(data.phone)
 	if err != nil {
-		t.Errorf("Reject(): can't create payment, error = %v", err)
-		return
+		return nil, nil, fmt.Errorf("can't register account, error = %v", err)
 	}
+	err = s.Deposit(account.ID, data.balance)
+	if err != nil {
+		return nil, nil, fmt.Errorf("can't deposit account, error = %v", err)
+	}
+	payments := make([]*types.Payment, len(data.payments))
+	for i, payment := range data.payments {
+		payments[i], err = s.Pay(account.ID, payment.amount, payment.category)
+		if err != nil {
+			return nil, nil, fmt.Errorf("can't make payment, error = %v", err)
+		}
+	}
+	return account, payments, nil
+}
 
-	var fakeId string = "2"
-	err = s.Reject(fakeId)
-	if err == nil {
-		t.Errorf("Reject(): can't reject payment, error = %v", err)
-		return
-	}
+var defaultTestAccount = testAccount{
+	phone:   "+992925556644",
+	balance: 10_000_00,
+	payments: []struct {
+		amount   types.Money
+		category types.PaymentCategory
+	}{
+		{amount: 1_000_00, category: "auto"},
+	},
 }
 
 func TestService_FindPaymentByID_success(t *testing.T) {
-	s := &Service{}
-	phone := types.Phone("+992000000001")
-	account, err := s.RegisterAccount(phone)
-	if err != nil {
-		t.Errorf("FindPaymentByID(): can't register account, error = %v", err)
-		return
-	}
-	s.Deposit(account.ID, 10000_00)
-	if err != nil {
-		t.Errorf("FindPaymentByID(): can't deposit  account, error = %v", err)
-		return
-	}
-
-	payment, err := s.Pay(account.ID, 1000_00, "auto")
+	s := newTestService()
+	_, payments, err := s.addAccount(defaultTestAccount)
 	if err != nil {
 		t.Errorf("FindPaymentByID(): can't create payment, error = %v", err)
 		return
 	}
-
+	payment := payments[0]
 	got, err := s.FindPaymentByID(payment.ID)
 	if err != nil {
-		t.Errorf("FindPaymentByID(): can't reject payment, error = %v", err)
+		t.Errorf("FindPaymentByID(): error = %v", err)
 		return
 	}
 	if !reflect.DeepEqual(payment, got) {
-		t.Errorf("FindPaymentByID(): wrong payment returned, error = %v", err)
+		t.Errorf("FindPaymentByID(): wrong payment returned = %v", err)
 		return
 	}
+}
+
+func TestService_FindPaymentByID_fail(t *testing.T) {
+	s := newTestService()
+	_, _, err := s.addAccount(defaultTestAccount)
+	if err != nil {
+		t.Errorf("FindPaymentByID(): can't create payment, error = %v", err)
+		return
+	}
+	_, err = s.FindPaymentByID(uuid.New().String())
+	if err == nil {
+		t.Error("FindPaymentByID(): must return error, returned nil")
+		return
+	}
+	if err != ErrPaymentNotFound {
+		t.Errorf("FindPaymentByID(): must return ErrPaymentNotFound, returned = %v", err)
+		return
+	}
+}
+
+func TestService_Reject_success(t *testing.T) {
+	s := newTestService()
+	_, payments, err := s.addAccount(defaultTestAccount)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	payment := payments[0]
+	err = s.Reject(payment.ID)
+	if err != nil {
+		t.Errorf("Reject(): error = %v", err)
+		return
+	}
+	savedPayment, err := s.FindPaymentByID(payment.ID)
+	if err != nil {
+		t.Errorf("Reject(): can't find payment by id, error =%v", err)
+		return
+	}
+	if savedPayment.Status != types.PaymentStatusFail {
+		t.Errorf("Reject(): status didn't changed, payment = %v", savedPayment)
+		return
+	}
+	savedAccount, err := s.FindAccountByID(payment.AccountID)
+	if err != nil {
+		t.Errorf("Reject(): can't find account by id, error = %v", err)
+		return
+	}
+	if savedAccount.Balance != defaultTestAccount.balance {
+		t.Errorf("Reject(): balance didn't changed, account = %v", savedAccount)
+		return
+	}
+
 }
 
 func TestService_Repeat_success(t *testing.T) {
@@ -123,25 +143,28 @@ func TestService_Repeat_success(t *testing.T) {
 		accounts: make([]*types.Account, 0),
 		payments: make([]*types.Payment, 0),
 	}
-	ac, _ := srv.RegisterAccount("+992927808989")
+	ac, _ := srv.RegisterAccount("+992928885522")
 	_ = srv.Deposit(ac.ID, 500)
-	pp, _ := srv.Pay(ac.ID, 5, "auto")
+
+	pp, _ := srv.Pay(ac.ID, 5, "salom")
+
 	p, _ := srv.Repeat(pp.ID)
 	p.ID = pp.ID
 	if !reflect.DeepEqual(p, pp) {
-		t.Errorf("Repeat(): expected %v returned =%v", pp, p)
+		t.Errorf("Repeat(): expected %v returned = %v", pp, p)
 	}
 }
 
-func TestService_Repeat_failed(t *testing.T) {
+func TestService_Repeat_fail(t *testing.T) {
 	srv := &Service{
 		accounts: make([]*types.Account, 0),
 		payments: make([]*types.Payment, 0),
 	}
-	_, _ = srv.RegisterAccount("+99298786545")
+	_, _ = srv.RegisterAccount("+992928885522")
+
 	_, err := srv.Repeat(uuid.New().String())
 	if err == nil {
-		t.Errorf("Repeat(): must retrun error, returned nil")
+		t.Error("Repeat(): must return error, returned nil")
 		return
 	}
 }
@@ -249,22 +272,23 @@ func TestService_FindFavoriteByID_fail(t *testing.T) {
 		t.Error("FindFavoriteByID(): must return error, returned nil")
 	}
 }
-func TestService_ExportToFile(t *testing.T) {
+
+func TestService_Export(t *testing.T) {
 	srv := &Service{
 		accounts:  make([]*types.Account, 0),
 		payments:  make([]*types.Payment, 0),
 		favorites: make([]*types.Favorite, 0),
 	}
-	_,_ = srv.RegisterAccount("+992928885522")
-	_,_ = srv.RegisterAccount("+992928000000")
-	_,_ = srv.RegisterAccount("+992928811111")
-	err := srv.ExportToFile("salom.txt")
-	println(err)
-}
+	ac, _ := srv.RegisterAccount("+992928885522")
+	_ = srv.Deposit(ac.ID, 500)
 
+	pp, _ := srv.Pay(ac.ID, 5, "salom")
 
-func TestService_ImportFromFile(t *testing.T) {
-	srv := &Service{accounts: make([]*types.Account, 0)}
-	err := srv.ImportFromFile("salom.txt")
-	println(err)
+	fw, _ := srv.FavoritePayment(pp.ID, "sidal")
+
+	_, err := srv.PayFromFavorite(fw.ID)
+	err = srv.Export("./")
+	if err != nil {
+		t.Error("test")
+	}
 }

@@ -47,3 +47,9 @@ type Favorite struct {
 func (ac *Account) ToString() string {
 	return fmt.Sprint(ac.ID, ";", ac.Phone, ";", ac.Balance)
 }
+func (payment *Payment) ToStrPayment() string {
+	return fmt.Sprint(payment.ID, ";", payment.AccountID, ";", payment.Amount, ";", payment.Category, ";", payment.Status)
+}
+func (favorite *Favorite) ToStrFavorite() string {
+	return fmt.Sprint(favorite.ID, ";", favorite.AccountID, ";", favorite.Name, ";", favorite.Amount, ";", favorite.Category)
+}
