@@ -326,3 +326,79 @@ func BenchmarkService_SumPayments(b *testing.B) {
 		b.Errorf("error, want =>%v, got => %v", want, got)
 	}
 }
+
+func TestService_ExportToFile(t *testing.T) {
+	srv := &Service{
+		accounts:  make([]*types.Account, 0),
+		payments:  make([]*types.Payment, 0),
+		favorites: make([]*types.Favorite, 0),
+	}
+	_, _ = srv.RegisterAccount("+992928885522")
+	_, _ = srv.RegisterAccount("+992928000000")
+	_, _ = srv.RegisterAccount("+992928811111")
+	err := srv.ExportToFile("salom.txt")
+	println(err)
+}
+
+
+func TestService_ImportFromFile(t *testing.T) {
+	srv := &Service{accounts: make([]*types.Account, 0)}
+	err := srv.ImportFromFile("salom.txt")
+	println(err)
+}
+
+func TestService_Export_2(t *testing.T) {
+	srv := &Service{
+		accounts:  make([]*types.Account, 0),
+		payments:  make([]*types.Payment, 0),
+		favorites: make([]*types.Favorite, 0),
+	}
+	_, _ = srv.RegisterAccount("+992928885522")
+	_, _ = srv.RegisterAccount("+992928000000")
+	ac, _ := srv.RegisterAccount("+992928811111")
+	_ = srv.Deposit(ac.ID, 500)
+
+	pp, _ := srv.Pay(ac.ID, 5, "salom")
+
+	_, _ = srv.FavoritePayment(pp.ID, "sidal")
+	err := srv.Export("./data")
+	exp := srv.accounts
+	srv.accounts = append(srv.accounts[0:1], srv.accounts[2:]...)
+	//srv.payments = make([]*types.Payment, 0)
+	//srv.favorites = make([]*types.Favorite, 0)
+
+	println(exp)
+	err = srv.Import("./data")
+	err = srv.Export("./data1")
+	if err != nil {
+		panic(err)
+	}
+	println(err)
+}
+
+func BenchmarkSumPayments(b *testing.B) {
+	srv := &Service{
+		accounts:  make([]*types.Account, 0),
+		payments:  make([]*types.Payment, 0),
+		favorites: make([]*types.Favorite, 0),
+	}
+	account, err := srv.RegisterAccount("+992926574322")
+	if err != nil {
+		b.Errorf("account => %v", account)
+	}
+	err = srv.Deposit(account.ID, 100_00)
+	if err != nil {
+		b.Errorf("error => %v", err)
+	}
+	want := types.Money(55)
+	for i := types.Money(1); i <= 10; i++ {
+		_, err := srv.Pay(account.ID, i, "aa")
+		if err != nil {
+			b.Errorf("error => %v", err)
+		}
+	}
+	got := srv.SumPayments(5)
+	if want != got {
+		b.Errorf("want => %v got => %v", want, got)
+	}
+}
