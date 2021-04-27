@@ -456,7 +456,6 @@ func (s *Service) SumPayments(goroutines int) types.Money {
 
 		}
 	} else {
-		fmt.Println("from else;")
 		for _, currentPayment := range s.payments {
 			sum += currentPayment.Amount
 		}
@@ -470,4 +469,75 @@ func (s *Service) SumPayments(goroutines int) types.Money {
 	wg.Wait()
 	return sum
 
+}
+
+func (s *Service) FilterPayments(accountID int64, goroutines int) (resPayments []types.Payment, err error) {
+	wg := sync.WaitGroup{}
+	mu := sync.Mutex{}
+	len1 := len(s.payments) / goroutines
+	len2 := len(s.payments) % goroutines
+
+	if goroutines < 2 {
+		for _, res := range s.payments {
+			if res.AccountID == accountID {
+				resPayments = append(resPayments, *res)
+			}
+			if res == nil {
+				return nil, ErrAccountNotFound
+			}
+		}
+		return
+	}
+
+	currentPosition := int(0)
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		lastPosition := currentPosition
+		go func(lastPosition int) {
+			defer wg.Done()
+			res := []types.Payment{}
+			curPaymArray := s.payments[lastPosition : lastPosition+len1]
+
+			for _, currentPayment := range curPaymArray {
+				if currentPayment == nil {
+					continue
+				}
+				if currentPayment.AccountID == accountID {
+					res = append(res, *currentPayment)
+				}
+			}
+			mu.Lock()
+			resPayments = append(resPayments, res...)
+			mu.Unlock()
+		}(lastPosition)
+
+		currentPosition += len1
+	}
+
+	if len2 != 0 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			res := []types.Payment{}
+			for _, currentPayment := range s.payments[(len(s.payments) - len2):len(s.payments)] {
+				if currentPayment == nil {
+					continue
+				}
+				if currentPayment.AccountID == accountID {
+					res = append(res, *currentPayment)
+				}
+			}
+
+			mu.Lock()
+			resPayments = append(resPayments, res...)
+			mu.Unlock()
+
+		}()
+	}
+
+	wg.Wait()
+	if resPayments == nil {
+		return nil, ErrAccountNotFound
+	}
+	return
 }
