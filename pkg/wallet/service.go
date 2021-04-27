@@ -541,3 +541,74 @@ func (s *Service) FilterPayments(accountID int64, goroutines int) (resPayments [
 	}
 	return
 }
+
+func (s *Service) FilterPaymentsByFn(filter func(payment types.Payment)bool, goroutines int) (resPayments []types.Payment, err error) {
+	wg := sync.WaitGroup{}
+	mu := sync.Mutex{}
+	len1 := len(s.payments) / goroutines
+	len2 := len(s.payments) % goroutines
+
+	if goroutines < 2 {
+		for _, res := range s.payments {
+			if filter(*res) {
+				resPayments = append(resPayments, *res)
+			}
+			if res == nil {
+				return nil, ErrAccountNotFound
+			}
+		}
+		return
+	}
+
+	currentPosition := int(0)
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		lastPosition := currentPosition
+		go func(lastPosition int) {
+			defer wg.Done()
+			res := []types.Payment{}
+			curPaymArray := s.payments[lastPosition : lastPosition+len1]
+
+			for _, currentPayment := range curPaymArray {
+				if currentPayment == nil {
+					continue
+				}
+				if filter(*currentPayment) {
+					res = append(res, *currentPayment)
+				}
+			}
+			mu.Lock()
+			resPayments = append(resPayments, res...)
+			mu.Unlock()
+		}(lastPosition)
+
+		currentPosition += len1
+	}
+
+	if len2 != 0 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			res := []types.Payment{}
+			for _, currentPayment := range s.payments[(len(s.payments) - len2):len(s.payments)] {
+				if currentPayment == nil {
+					continue
+				}
+				if filter(*currentPayment) {
+					res = append(res, *currentPayment)
+				}
+			}
+
+			mu.Lock()
+			resPayments = append(resPayments, res...)
+			mu.Unlock()
+
+		}()
+	}
+
+	wg.Wait()
+	if resPayments == nil {
+		return nil, ErrAccountNotFound
+	}
+	return
+}

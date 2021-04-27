@@ -456,3 +456,64 @@ func BenchmarkFilterPayments(b *testing.B) {
 	}
 	log.Println(len(account))
 }
+func BenchmarkService_FilterPaymentsByFn(b *testing.B) {
+	s := &Service{
+		accounts:  make([]*types.Account, 0),
+		payments:  make([]*types.Payment, 0),
+		favorites: make([]*types.Favorite, 0),
+	}
+	filter := func(payment types.Payment) bool {
+		for _, value := range s.payments {
+			if payment.ID == value.ID {
+				return true
+			}
+		}
+		return false
+	}
+	ac1, err := s.RegisterAccount("+921111110")
+	ac2, err := s.RegisterAccount("+921111111")
+	ac3, err := s.RegisterAccount("+921111112")
+	ac4, err := s.RegisterAccount("+921111113")
+	ac5, err := s.RegisterAccount("+921111114")
+	ac6, err := s.RegisterAccount("+921111115")
+	if err != nil {
+		return
+	}
+	err = s.Deposit(ac6.ID, 30_000)
+	err = s.Deposit(ac5.ID, 30_000)
+	err = s.Deposit(ac1.ID, 30_000)
+	err = s.Deposit(ac2.ID, 30_000)
+	err = s.Deposit(ac3.ID, 30_000)
+	err = s.Deposit(ac4.ID, 30_000)
+	err = s.Deposit(ac6.ID, 30_000)
+	err = s.Deposit(ac1.ID, 30_000)
+	err = s.Deposit(ac6.ID, 30_000)
+	if err != nil {
+		return
+	}
+
+	s.Pay(ac1.ID, 20_000, "auto")
+	s.Pay(ac1.ID, 20_000, "auto")
+	s.Pay(ac2.ID, 20_000, "auto")
+	s.Pay(ac2.ID, 20_000, "auto")
+	s.Pay(ac2.ID, 20_000, "auto")
+	s.Pay(ac3.ID, 20_000, "auto")
+	s.Pay(ac3.ID, 20_000, "auto")
+	s.Pay(ac3.ID, 20_000, "auto")
+	s.Pay(ac4.ID, 20_000, "auto")
+	s.Pay(ac4.ID, 20_000, "auto")
+	s.Pay(ac4.ID, 20_000, "auto")
+	s.Pay(ac4.ID, 20_000, "auto")
+	s.Pay(ac5.ID, 20_000, "auto")
+	s.Pay(ac5.ID, 20_000, "auto")
+	s.Pay(ac6.ID, 20_000, "auto")
+	s.Pay(ac6.ID, 20_000, "auto")
+	s.Pay(ac6.ID, 20_000, "auto")
+	s.Pay(ac6.ID, 20_000, "auto")
+
+	account, err := s.FilterPaymentsByFn(filter, 4)
+	if err != nil {
+		b.Errorf("account not found ===>")
+	}
+	log.Println(len(account))
+}
