@@ -1,6 +1,8 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+)
 
 //Money представляет собой денежную сумму в мин единицах
 type Money int64
@@ -54,4 +56,9 @@ type Favorite struct {
 
 func (ac *Favorite) ToString() string {
 	return fmt.Sprint(ac.ID, ";", ac.AccountID, ";", ac.Name, ";", ac.Amount, ";", ac.Category)
+}
+
+type Progress struct {
+	Part   int
+	Result Money
 }
